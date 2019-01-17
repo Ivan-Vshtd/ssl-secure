@@ -23,7 +23,7 @@ public class Config extends WebSecurityConfigurerAdapter {
     public UserDetailsService userDetailsService(){
         return userName -> {
             System.err.println(userName);
-            if (userName.equals("ivan.veshtard")){
+            if (userName.equals("cid")){
                 return new User(userName, "",
                         AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_USER"));
             } else {
