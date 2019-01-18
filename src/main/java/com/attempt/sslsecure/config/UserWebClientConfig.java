@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 /**
  * @author iveshtard
  * @since 1/15/2019
+ *
+ * this config allows webClient works with mutual ssl authentication
  */
 @Configuration
 public class UserWebClientConfig {
@@ -44,8 +46,8 @@ public class UserWebClientConfig {
 
     @Bean
     public WebClient createWebClient() {
-            SslContext sslContext;
-            try {
+        SslContext sslContext;
+        try {
                 KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
                 trustStore.load(new FileInputStream(ResourceUtils.getFile(trustStorePath)), trustStorePasswd.toCharArray());
 
@@ -63,20 +65,30 @@ public class UserWebClientConfig {
                     }
                 }).collect(Collectors.toList());
 
-                KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-                keyStore.load(new FileInputStream(ResourceUtils.getFile(keyStorePath)), keyStorePasswd.toCharArray());
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(new FileInputStream(ResourceUtils.getFile(keyStorePath)), keyStorePasswd.toCharArray());
 
-                sslContext = SslContextBuilder.forClient()
-                        .keyManager((PrivateKey) keyStore.getKey(keyAlias, keyStorePasswd.toCharArray()))
-                        .trustManager((X509Certificate[]) certificateCollection.toArray(new X509Certificate[0]))
-                        .build();
+            sslContext = SslContextBuilder.forClient()
+                    .keyManager(
+                            (PrivateKey) keyStore.getKey(keyAlias,
+                            keyStorePasswd.toCharArray()),
+                            Collections.list(keyStore.aliases()).stream().map(oneAlias -> {
+                                try {
+                                    return (X509Certificate) keyStore.getCertificate(oneAlias);
+                                } catch (KeyStoreException e) {
+                                    e.printStackTrace();
+                                }
+                                throw new RuntimeException("There are no X509Certificates!");
+                            }).toArray(X509Certificate[]::new))
+                    .trustManager((X509Certificate[]) certificateCollection.toArray(new X509Certificate[0]))
+                    .build();
 
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            HttpClient httpClient = HttpClient.create().secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
-            ClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
-            return WebClient.builder().clientConnector(connector).baseUrl(BASEURL).build();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        HttpClient httpClient = HttpClient.create().secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
+        ClientHttpConnector connector = new ReactorClientHttpConnector(httpClient);
+        return WebClient.builder().baseUrl(BASEURL).clientConnector(connector).build();
     }
 
 }

@@ -44,7 +44,6 @@ public class Config extends WebSecurityConfigurerAdapter {
                 .x509()
                 .subjectPrincipalRegex("CN=(.*?),")
                 .userDetailsService(userDetailsService());
-        super.configure(http);
     }
 }
 

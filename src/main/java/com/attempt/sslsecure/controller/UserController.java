@@ -22,15 +22,15 @@ public class UserController {
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
     @GetMapping("/user")
-    public UserDetails user(@AuthenticationPrincipal UserDetails userDetails) {
-        return userDetails;
+    public String user(@AuthenticationPrincipal UserDetails userDetails) {
+        return userDetails.getUsername();
     }
 
     @GetMapping("/done")
-    public Mono<UserDetails> done() {
+    public Mono<String> done() {
         return webClient.get()
                 .uri("/user")
                 .retrieve()
-                .bodyToMono(UserDetails.class);
+                .bodyToMono(String.class);
     }
 }
